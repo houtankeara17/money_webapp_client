@@ -11,26 +11,36 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
   const token = localStorage.getItem("token");
   const saved = localStorage.getItem("user");
-  
+
   if (token && saved) {
-    setUser(JSON.parse(saved));
-    
+    try {
+      // 1. Immediately hydrate user state from localStorage
+      setUser(JSON.parse(saved));
+    } catch (e) {
+      console.error("Failed to parse saved user JSON", e);
+    }
+
+    // 2. Unlock the app instantly—don't wait for the Render backend call
+    setLoading(false);
+
+    // 3. Silent background refresh of profile data
     api
       .get("/auth/me")
       .then((res) => {
+        // Update state & storage with fresh server data
         setUser(res.data.data);
         localStorage.setItem("user", JSON.stringify(res.data.data));
       })
       .catch((err) => {
-        // ONLY log out if the backend explicitly tells us the token is invalid/expired
+        // ONLY force logout if server explicitly responds with 401 Unauthorized
         if (err.response && err.response.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setUser(null);
         }
-      })
-      .finally(() => setLoading(false));
+      });
   } else {
+    // No saved session found
     setLoading(false);
   }
 }, []);
