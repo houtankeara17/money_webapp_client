@@ -1,10 +1,11 @@
 import axios from "axios";
 
-// 1. In production (on Vercel), use empty string "" so requests use relative paths (/api/...)
-// 2. In local development, fallback to "http://localhost:5000" (or rely on Vite proxy)
-const BASE_URL = import.meta.env.MODE === "production" 
-  ? "" 
-  : (import.meta.env.VITE_API_URL || "http://localhost:5000");
+// 1. In production (Vercel), use empty string "" for relative path proxying (/api/...)
+// 2. In local development, fallback to "http://localhost:5000" or VITE_API_URL
+const BASE_URL =
+  import.meta.env.MODE === "production"
+    ? ""
+    : import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,11 +26,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Prevent redirecting if the request was to auth routes
+    // Safely check if the failed request URL belongs to auth routes
+    const requestUrl = error.config?.url || "";
     const isAuthRoute =
-      error.config?.url?.includes("/auth/login") ||
-      error.config?.url?.includes("/auth/register");
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register");
 
+    // Handle session expiration (401 Unauthorized)
     if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
