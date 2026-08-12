@@ -9,27 +9,31 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const saved = localStorage.getItem("user");
-    if (token && saved) {
-      setUser(JSON.parse(saved));
-      // Optionally refresh profile
-      api
-        .get("/auth/me")
-        .then((res) => {
-          setUser(res.data.data);
-          localStorage.setItem("user", JSON.stringify(res.data.data));
-        })
-        .catch(() => {
+  const token = localStorage.getItem("token");
+  const saved = localStorage.getItem("user");
+  
+  if (token && saved) {
+    setUser(JSON.parse(saved));
+    
+    api
+      .get("/auth/me")
+      .then((res) => {
+        setUser(res.data.data);
+        localStorage.setItem("user", JSON.stringify(res.data.data));
+      })
+      .catch((err) => {
+        // ONLY log out if the backend explicitly tells us the token is invalid/expired
+        if (err.response && err.response.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setUser(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, []);
+        }
+      })
+      .finally(() => setLoading(false));
+  } else {
+    setLoading(false);
+  }
+}, []);
 
   const langMsg = (en, km) => {
     const lang = localStorage.getItem("language") || "en";
