@@ -51,15 +51,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem("token", data.data.token);
-    localStorage.setItem("user", JSON.stringify(data.data));
-    setUser(data.data);
-    toast.success(
-      data.message || langMsg("Login successful!", "ចូលដោយជោគជ័យ!"),
-    );
-    return data;
-  };
+  const { data } = await api.post("/auth/login", { email, password });
+  
+  // Safe extraction whether backend wraps in data or not
+  const token = data.token || data.data?.token;
+  const userData = data.user || data.data?.user || data.data;
+
+  if (!token) {
+    console.error("No token received from backend response:", data);
+    return;
+  }
+
+  localStorage.setItem("token", token);
+  localStorage.setItem("user", JSON.stringify(userData));
+  setUser(userData);
+  
+  toast.success(data.message || langMsg("Login successful!", "ចូលដោយជោគជ័យ!"));
+  return data;
+};
 
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", {
