@@ -19,10 +19,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Prevent redirecting if the request was to auth routes (e.g., login/register)
+    const isAuthRoute = error.config?.url?.includes("/auth/login") || error.config?.url?.includes("/auth/register");
+
+    if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      if (window.location.pathname !== "/login") {
+      
+      // Let React Router handle navigation smoothly instead of a forced window reload
+      if (!window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
     }
